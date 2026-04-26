@@ -186,7 +186,7 @@ func (d *Discovery) CollectStorageContracts(ctx context.Context) (interval time.
 				"failed to scan provider wallet",
 				slog.String("pubkey", w.PublicKey),
 				slog.String("address", w.Address),
-				sl.Err(err),
+				sl.Err(scanErr),
 			)
 			continue
 		}
@@ -367,7 +367,7 @@ func (d *Discovery) ResolveEndpoints(ctx context.Context) (interval time.Duratio
 			log.Debug(
 				"failed to resolve provider endpoint",
 				slog.String("pubkey", pubkey),
-				sl.Err(err),
+				sl.Err(rErr),
 			)
 			failed++
 			continue
