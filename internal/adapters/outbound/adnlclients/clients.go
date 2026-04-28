@@ -21,7 +21,9 @@ func New(
 	configURL string,
 	ADNLPort string,
 	privateKey ed25519.PrivateKey,
-) (clients Clients, err error) {
+) (
+	clients Clients, err error) {
+
 	lsCfg, err := liteclient.GetConfigFromUrl(ctx, configURL)
 	if err != nil {
 		err = fmt.Errorf("failed to get liteclient config: %w", err)

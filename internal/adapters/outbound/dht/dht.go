@@ -62,7 +62,11 @@ func (d *DHT) Resolve(
 
 	providerEP, err := d.findProviderEndpoint(ctx, pubkey)
 	if err != nil {
-		log.Error("failed to find provider endpoint")
+		log.Debug(
+			"failed to find provider endpoint",
+			slog.String("pubkey", hex.EncodeToString(pubkey)),
+			sl.Err(err),
+		)
 		return result, fmt.Errorf("%s:%w", op, err)
 	}
 
@@ -70,8 +74,13 @@ func (d *DHT) Resolve(
 
 	storageEP, err := d.findStorageEndpoint(ctx, pubkey, contractAddr)
 	if err != nil {
-		log.Warn("failed to find storage endpoint")
-		//!! dont edit best effotr
+		log.Debug(
+			"failed to find storage endpoint",
+			slog.String("pubkey", hex.EncodeToString(pubkey)),
+			slog.String("contract", contractAddr),
+			sl.Err(err),
+		)
+		//!! dont edit best effort
 		return result, nil
 	}
 
@@ -172,7 +181,7 @@ func (d *DHT) ResolveStorageWithOverlay(
 					d.logger.Info("successfully found")
 
 					return domain.Endpoint{
-						Publickey: pubKey,
+						PublicKey: pubKey,
 						IP:        addr.IP.String(),
 						Port:      addr.Port,
 					}, nil
@@ -216,7 +225,7 @@ func (d *DHT) findProviderEndpoint(ctx context.Context, pubkey []byte) (domain.E
 	}
 
 	return domain.Endpoint{
-		Publickey: pub,
+		PublicKey: pub,
 		IP:        l.Addresses[0].IP.String(),
 		Port:      l.Addresses[0].Port,
 	}, nil
@@ -257,7 +266,7 @@ func (d *DHT) findStorageEndpoint(
 	}
 
 	return domain.Endpoint{
-		Publickey: pub,
+		PublicKey: pub,
 		IP:        l.Addresses[0].IP.String(),
 		Port:      l.Addresses[0].Port,
 	}, nil

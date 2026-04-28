@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,12 +17,6 @@ type ProviderRepo struct {
 }
 
 // internal DTOs — не утекают в usecase-слой.
-type providerCreateDTO struct {
-	PublicKey    string    `json:"public_key"`
-	Address      string    `json:"address"`
-	RegisteredAt time.Time `json:"registered_at"`
-}
-
 type providerLTDTO struct {
 	PublicKey string `json:"public_key"`
 	LastTxLT  uint64 `json:"last_tx_lt"`
@@ -850,66 +843,6 @@ func (r *ProviderRepo) UpdateLT(ctx context.Context, providers []domain.Provider
 			FROM jsonb_array_elements($1::jsonb) AS p
 		) AS c
 		WHERE p.public_key = c.public_key
-	`, string(data))
-	if err != nil {
-		return fmt.Errorf("%s:%w", op, err)
-	}
-
-	return nil
-}
-
-// UpdateRates обновляет тарифы одного провайдера (вызывается из poll на каждый Probe-результат).
-func (r *ProviderRepo) UpdateRates(ctx context.Context, pubkey string, rates domain.Rates) error {
-	const op = "postgres.ProviderRepo.UpdateRates"
-
-	_, err := r.db.Exec(ctx, `
-		UPDATE providers.providers
-		SET
-			rate_per_mb_per_day = $2,
-			min_bounty          = $3,
-			min_span            = $4,
-			max_span            = $5,
-			is_initialized      = true,
-			updated_at          = NOW()
-		WHERE public_key = lower($1)
-	`, pubkey, rates.RatePerMBDay, rates.MinBounty, rates.MinSpan, rates.MaxSpan)
-	if err != nil {
-		return fmt.Errorf("%s:%w", op, err)
-	}
-
-	return nil
-}
-
-func (r *ProviderRepo) Create(ctx context.Context, providers []domain.Provider) error {
-	const op = "postgres.ProviderRepo.Create"
-
-	if len(providers) == 0 {
-		return nil
-	}
-
-	dtos := make([]providerCreateDTO, len(providers))
-	for i, p := range providers {
-		dtos[i] = providerCreateDTO{
-			PublicKey:    p.PublicKey,
-			Address:      p.Address,
-			RegisteredAt: p.RegisteredAt,
-		}
-	}
-
-	data, err := json.Marshal(dtos)
-	if err != nil {
-		return fmt.Errorf("%s:%w", op, err)
-	}
-
-	_, err = r.db.Exec(ctx, `
-		INSERT INTO providers.providers (public_key, address, registered_at, is_initialized)
-		SELECT
-			lower(p->>'public_key'),
-			p->>'address',
-			(p->>'registered_at')::timestamptz,
-			false
-		FROM jsonb_array_elements($1::jsonb) AS p
-		ON CONFLICT DO NOTHING
 	`, string(data))
 	if err != nil {
 		return fmt.Errorf("%s:%w", op, err)
