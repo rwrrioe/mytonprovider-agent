@@ -1,7 +1,7 @@
 system:
   agent_id: auto
   adnl_port: "16167"
-  log_level: 1
+  log_level: 0
 
 redis:
   addr: redis:6379

@@ -1,0 +1,24 @@
+# Агент — отдельный stack, симулирующий «другую машину».
+# Подключён только к external bridge_net (mtpa_bridge), где живёт redis бэкенда.
+# Postgres агент не видит. App бэкенда тоже.
+services:
+  agent:
+    build: .
+    container_name: mtpa_agent
+    env_file:
+      - .env
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+    ports:
+      - "2112:2112"           # /metrics на хост
+      - "16167:16167/udp"     # ADNL
+    volumes:
+      - ./config:/app/config:ro
+    networks:
+      - bridge_net
+    restart: unless-stopped
+
+networks:
+  bridge_net:
+    external: true
+    name: mtpa_bridge
