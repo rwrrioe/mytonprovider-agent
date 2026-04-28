@@ -1,0 +1,20 @@
+# Compose file for an agent on a SEPARATE host from the backend.
+# It does NOT use the mtpa_bridge external network (that lives on the backend
+# host). Instead, the agent reaches backend redis/postgres via tailscale,
+# using REDIS_ADDR / DB_HOST from .env (set to the backend's tailscale IP).
+services:
+  agent:
+    build: .
+    container_name: mtpa_agent
+    env_file:
+      - .env
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+    ports:
+      - "2112:2112"           # /metrics
+      - "16167:16167/udp"     # ADNL (must be reachable from the public internet)
+    volumes:
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    # Default bridge network — DNS names redis/db do NOT resolve here.
+    # The agent connects to the backend's tailscale IP (set in .env).
