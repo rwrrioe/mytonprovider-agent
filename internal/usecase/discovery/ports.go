@@ -44,12 +44,8 @@ type EndpointResolver interface {
 	) (domain.Endpoint, error)
 }
 
+// ProviderRepo: read-only кроме UpdateLT (per-wallet LT — checkpoint, пишет агент).
 type ProviderRepo interface {
-	Create(
-		ctx context.Context,
-		providers []domain.Provider,
-	) error
-
 	GetAllPubkeys(ctx context.Context) ([]string, error)
 	GetAllWallets(ctx context.Context) ([]domain.Provider, error)
 
@@ -59,30 +55,27 @@ type ProviderRepo interface {
 	) error
 }
 
+// ContractRepo: read-only.
 type ContractRepo interface {
-	CreateContracts(
-		ctx context.Context,
-		contracts []domain.StorageContract,
-	) error
-
-	CreateRelations(
-		ctx context.Context,
-		relations []domain.ContractProviderRelation,
-	) error
-
 	GetActiveRelations(ctx context.Context) ([]domain.ContractProviderRelation, error)
 }
 
+// EndpointRepo: read-only.
 type EndpointRepo interface {
-	Upsert(
-		ctx context.Context,
-		endpoint domain.ProviderEndpoint,
-	) error
-
 	LoadAll(ctx context.Context) (map[string]domain.ProviderEndpoint, error)
 }
 
+// SystemRepo: master_wallet_lt — checkpoint, пишет агент.
 type SystemRepo interface {
 	GetMasterWalletLT(ctx context.Context) (uint64, error)
 	SetMasterWalletLT(ctx context.Context, lt uint64) error
+}
+
+// Publisher публикует ResultEnvelope в result-stream.
+type Publisher interface {
+	PublishResult(
+		ctx context.Context,
+		streamKey, jobID, cycleType string,
+		payload any,
+	) error
 }

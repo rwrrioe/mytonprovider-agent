@@ -1,15 +1,31 @@
 package poll
 
-import "context"
+import (
+	"context"
 
-type ProviderRepository interface {
-	GetAllProvidersPubkeys(ctx context.Context) ([]string, error)
+	"github.com/rwrrioe/mytonprovider-agent/internal/domain"
+)
 
-	AddProviders(
-		ctx context.Context,
-		providers []db.ProviderCreate,
-	) error
+type RatesProbe interface {
+	Probe(ctx context.Context, pubkey []byte) (rates domain.Rates, online bool, err error)
 }
 
-type DirectProviderClient interface {
+type ContractInspector interface {
+	InspectProviders(ctx context.Context, addrs []string) ([]domain.ContractOnChainState, error)
+}
+
+type ProviderRepo interface {
+	GetAllPubkeys(ctx context.Context) ([]string, error)
+}
+
+type ContractRepo interface {
+	GetActiveRelations(ctx context.Context) ([]domain.ContractProviderRelation, error)
+}
+
+type Publisher interface {
+	PublishResult(
+		ctx context.Context,
+		streamKey, jobID, cycleType string,
+		payload any,
+	) error
 }
