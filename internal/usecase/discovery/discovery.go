@@ -62,9 +62,6 @@ func New(
 	}
 }
 
-// CollectNewProviders сканирует master-кошелёк, дедуплицирует по известным
-// pubkey'ям, публикует список новых провайдеров в result-stream и обновляет
-// master_wallet_lt в БД (checkpoint).
 func (d *Discovery) CollectNewProviders(ctx context.Context) error {
 	const op = "usecase.discovery.CollectNewProviders"
 
