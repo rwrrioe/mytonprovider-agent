@@ -1,9 +1,5 @@
-# mytonprovider-agent + backend — onboarding
-
-Этот каталог содержит полную документацию по новой архитектуре сервиса (после
-миграции с self-scheduled-monolith на Redis-Streams + stateless agent).
-
-## Кто такие эти сервисы
+Независимый набор воркеров, которые ищут и проверяют storage-providers в сети TON.  Scheduling и оркестрация проводится внешним сервисом, в нашем случае бэкендом. 
+## Разделение сервисов
 
 - **`mytonprovider-backend`** — единственный writer Postgres + cron-планировщик
   «триггеров» циклов. Публикует команды в Redis, читает результаты, пишет их
@@ -24,9 +20,6 @@
 | 5 | [deployment.md](05-deployment.md) | DevOps | docker-compose, сетевые модели, миграции |
 | 6 | [operations.md](06-operations.md) | дежурным/SRE | verification, troubleshooting, scaling, multi-agent |
 | 7 | [changelog.md](07-changelog.md) | всем | что и почему изменилось (timeline) |
-
-Если читаешь впервые — читай по порядку. Если что-то конкретное надо найти —
-прыгай в нужный документ через ссылку выше.
 
 ## TL;DR за 60 секунд
 

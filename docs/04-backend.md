@@ -47,6 +47,22 @@ mytonprovider-backend/
 └── docker-compose.yml        # postgres + redis + db_migrate + app
 ```
 
+## Backend consumer-scheduler 
+
+Общая структура представляет собой cron-scheduler который раз в N секунд вызывает XADD и добавляет новые jobs в редис стрим статусов. Отдельная сущность consumer читает результаты из стрима результатов и пишет в БД.
+
+![[Scheduler-Consumer.png]]
+
+
+Scheduler представлен объектом dispatcher, который после тика раз в N секунд вызывает publisher (обертка над XADD):
+
+![[Pasted image 20260501095124.png]]
+
+Consumer читает стрим и запускает пул воркеров. Каждый воркер  запускает транзакци из двух частей: дедупликация по jobs и сохранение результатов агента в БД. Process делает дедупликацию по jobs и вызывает хендлер. Хендлер - обертка над конкретным методом репозитория, который просто сохраняет данные уже после дедупликации.
+
+![[Consumer-backend.png]]
+
+Более подробно о структурах Consumer-Dispatcher ниже.
 ## Поток управления
 
 ### 1. Старт ([`cmd/main.go`](../../mytonprovider-backend/cmd/main.go))
