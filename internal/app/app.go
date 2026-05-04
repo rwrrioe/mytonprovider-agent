@@ -217,13 +217,15 @@ func (a *App) MustRun(ctx context.Context) {
 		}
 
 		consumer := redisin.NewConsumer(a.RDB, redisin.ConsumerConfig{
-			Stream:     stream,
-			Group:      a.Config.Redis.Group,
-			ConsumerID: a.Config.System.AgentID,
-			CycleType:  b.cycleType,
-			Pool:       b.usecase.Pool,
-			Timeout:    b.usecase.Timeout,
-			BlockMs:    b.usecase.BlockMs,
+			Stream:        stream,
+			Group:         a.Config.Redis.Group,
+			ConsumerID:    a.Config.System.AgentID,
+			CycleType:     b.cycleType,
+			Pool:          b.usecase.Pool,
+			Timeout:       b.usecase.Timeout,
+			BlockMs:       b.usecase.BlockMs,
+			MinIdle:       a.Config.System.MinJobIdle,
+			ReaperTimeout: a.Config.System.ReaperTimeout,
 		}, b.handler, a.Logger, a.Prometheus)
 
 		wg.Add(1)
@@ -238,6 +240,14 @@ func (a *App) MustRun(ctx context.Context) {
 			slog.Int("pool", b.usecase.Pool),
 			slog.Duration("timeout", b.usecase.Timeout),
 		)
+	}
+
+	if a.Config.Metrics.Enabled {
+		go func() {
+			metrics.Serve(ctx, a.Config.Metrics.Port, a.Logger)
+		}()
+	} else {
+		a.Logger.Info("metrics disabled, skipping")
 	}
 
 	<-ctx.Done()
