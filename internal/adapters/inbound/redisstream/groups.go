@@ -8,8 +8,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// EnsureGroup создаёт consumer-group на стриме (с MKSTREAM, чтобы стрим тоже создался,
-// если его ещё нет). Игнорирует BUSYGROUP — нормальная ситуация при рестарте.
 func EnsureGroup(
 	ctx context.Context,
 	rdb *redis.Client,
@@ -22,6 +20,6 @@ func EnsureGroup(
 	if err == nil || strings.Contains(err.Error(), "BUSYGROUP") {
 		return nil
 	}
-	
+
 	return fmt.Errorf("%s: stream=%s group=%s: %w", op, stream, group, err)
 }

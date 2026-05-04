@@ -19,27 +19,31 @@ import (
 type CycleHandler func(ctx context.Context) error
 
 type Consumer struct {
-	rdb        *redis.Client
-	stream     string
-	group      string
-	consumerID string
-	cycleType  string
-	pool       int
-	timeout    time.Duration
-	blockMs    int
-	handler    CycleHandler
-	logger     *slog.Logger
-	metrics    *metrics.Metrics
+	rdb           *redis.Client
+	stream        string
+	group         string
+	consumerID    string
+	cycleType     string
+	pool          int
+	timeout       time.Duration
+	blockMs       int
+	midIdle       time.Duration
+	reaperTimeout time.Duration
+	handler       CycleHandler
+	logger        *slog.Logger
+	metrics       *metrics.Metrics
 }
 
 type ConsumerConfig struct {
-	Stream     string
-	Group      string
-	ConsumerID string
-	CycleType  string
-	Pool       int
-	Timeout    time.Duration
-	BlockMs    int
+	Stream        string
+	Group         string
+	ConsumerID    string
+	CycleType     string
+	Pool          int
+	Timeout       time.Duration
+	BlockMs       int
+	MinIdle       time.Duration
+	ReaperTimeout time.Duration
 }
 
 func NewConsumer(
@@ -59,22 +63,31 @@ func NewConsumer(
 		cfg.BlockMs = 5000
 	}
 	return &Consumer{
-		rdb:        rdb,
-		stream:     cfg.Stream,
-		group:      cfg.Group,
-		consumerID: cfg.ConsumerID,
-		cycleType:  cfg.CycleType,
-		pool:       cfg.Pool,
-		timeout:    cfg.Timeout,
-		blockMs:    cfg.BlockMs,
-		handler:    handler,
-		logger:     logger,
-		metrics:    m,
+		rdb:           rdb,
+		stream:        cfg.Stream,
+		group:         cfg.Group,
+		consumerID:    cfg.ConsumerID,
+		cycleType:     cfg.CycleType,
+		pool:          cfg.Pool,
+		timeout:       cfg.Timeout,
+		blockMs:       cfg.BlockMs,
+		midIdle:       cfg.MinIdle,
+		reaperTimeout: cfg.ReaperTimeout,
+		handler:       handler,
+		logger:        logger,
+		metrics:       m,
 	}
 }
 
 func (c *Consumer) Run(ctx context.Context) {
 	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.runReaper(ctx)
+	}()
+
 	for i := range c.pool {
 		wg.Add(1)
 		go func() {
