@@ -2,6 +2,8 @@ system:
   agent_id: auto
   adnl_port: "16167"
   log_level: 1
+  min_job_idle: 15m
+  reaper_timeout: 10m
 
 redis:
   addr: redis:6379

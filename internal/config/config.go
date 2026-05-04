@@ -20,10 +20,12 @@ var LogLevels = map[uint8]slog.Level{
 }
 
 type System struct {
-	AgentID  string             `yaml:"agent_id"  env:"AGENT_ID"  env-default:"auto"`
-	ADNLPort string             `yaml:"adnl_port" env:"ADNL_PORT" env-default:"16167"`
-	Key      ed25519.PrivateKey `env:"SYSTEM_KEY"`
-	LogLevel uint8              `yaml:"log_level" env:"LOG_LEVEL" env-default:"1"`
+	AgentID       string             `yaml:"agent_id"  env:"AGENT_ID"  env-default:"auto"`
+	ADNLPort      string             `yaml:"adnl_port" env:"ADNL_PORT" env-default:"16167"`
+	Key           ed25519.PrivateKey `env:"SYSTEM_KEY"`
+	LogLevel      uint8              `yaml:"log_level" env:"LOG_LEVEL" env-default:"1"`
+	MinJobIdle    time.Duration      `yaml:"min_job_idle" env:"MIN_JOB_IDLE" env-default:"15m"`
+	ReaperTimeout time.Duration      `yaml:"reaper_timeout" env:"REAPER_TIMEOUT" env-default:"10m"`
 }
 
 type Postgres struct {
