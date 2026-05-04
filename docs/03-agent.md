@@ -161,18 +161,49 @@ COMMIT;
 
 ## Что НЕ покрыто текущей реализацией (известные TODOs)
 
-- **`XAUTOCLAIM` reaper** — не реализован. Если агент крашнулся, его сообщения
-  висят в PEL до ручного reclaim. Можно добавить отдельным cron-job'ом или
-  запускать в самом агенте при старте на старых консумер'ах.
 - **OTel trace propagation** — `trace_parent` не пробрасывается через envelope.
-- **HTTP `/healthz`** — на агенте есть только `/metrics`, отдельный health-check
-  endpoint не предусмотрен.
+- **HTTP `/healthz`** — агент отдаёт `/metrics` (Prometheus, порт `2112`),
+  отдельный health-check endpoint не предусмотрен.
 - **Multi-instance backend** — потребует distributed lock (Redis SETNX) в
   диспетчере, чтобы не плодить дубли триггеров. Сейчас рассчитано на 1
   бэкенд-инстанс.
 - **Bag-prover session reuse** — `directprovider.Verify` пересоздаёт ADNL peer
   для каждого bag'а. Можно ввести batch-job `verify_bags_batch` для одного
   провайдера, чтобы переиспользовать RLDP-сессию.
+
+## XAUTOCLAIM Reaper
+
+Каждый `Consumer` при старте запускает фоновую горутину-reaper
+(`internal/adapters/inbound/redisstream/reaper.go`).
+
+```
+Consumer.Run(ctx)
+  ├─ go runReaper(ctx)          ← фоновый loop
+  └─ go runWorker(ctx, i) × N   ← пул воркеров
+```
+
+**Алгоритм reaper'а**:
+
+1. Тикает каждые `ReaperTimeout` (настраивается в конфиге).
+2. Вызывает `XAUTOCLAIM … MINIDLETIME <MinIdle> COUNT 10` — забирает
+   сообщения, которые пролежали в PEL дольше `MinIdle` без XACK
+   (т.е. воркер, который их получил, либо крашнулся, либо завис).
+3. Каждое reclaimed-сообщение передаётся в `process()` — тот же путь,
+   что и у обычного воркера: runHandler → XACK.
+4. Курсор пагинирует до `"0-0"` (весь PEL пройден).
+
+**Параметры конфига** (секция `workers.<cycle>`):
+
+| Поле            | Значение по умолчанию | Смысл                                          |
+|-----------------|-----------------------|------------------------------------------------|
+| `min_idle`      | —                     | Минимальное время idle в PEL до reclaim        |
+| `reaper_timeout`| —                     | Интервал между запусками XAUTOCLAIM            |
+
+Рекомендуемые значения: `min_idle = 10m`, `reaper_timeout = 5m`.
+Для быстрых циклов (`probe_rates`) можно взять `min_idle = 3m`.
+
+**Почему это важно**: без reaper'а крашнувший воркер оставляет сообщение
+в PEL навсегда — цикл не перезапустится до ручного `XAUTOCLAIM`.
 
 ## Trade-offs (записано чтобы не забыть)
 
