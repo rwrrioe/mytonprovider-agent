@@ -1,8 +1,8 @@
 global:
-  scrape_interval:15s
-  evaluation_interval:15s
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
   - job_name: mtpa
     static_configs:
-      - targets: ["mtpa:2112"]
+      - targets: ["mtpa_agent:2112"]
