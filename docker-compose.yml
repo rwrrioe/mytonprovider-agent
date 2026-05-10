@@ -18,6 +18,14 @@ services:
       - bridge_net
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./deploy/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+    ports:
+      - "9091:9090"
+    depends_on:
+      - agent
 networks:
   bridge_net:
     external: true
