@@ -5,11 +5,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strings"
 
 	tonclient "github.com/rwrrioe/mytonprovider-agent/internal/adapters/outbound/ton/liteclient"
 	"github.com/rwrrioe/mytonprovider-agent/internal/domain"
 )
+
+var userFriendlyAddrTemplate = regexp.MustCompile(`^[EUk0][Qq][A-Za-z0-9_-]{46}$`)
 
 const pubkeyHexLen = 64
 
@@ -62,6 +65,15 @@ func (s *MasterScanner) Scan(
 			lastLT = tx.LT
 		}
 
+		if !IsUserFriendly(tx.From) {
+			log.Warn(
+				"non-standard source in the master wallet",
+				slog.String("from", tx.From),
+			)
+
+			continue
+		}
+
 		pos := strings.Index(tx.Message, domain.TspRegistrationPrefix)
 		if pos < 0 {
 			continue
@@ -107,4 +119,8 @@ func (s *MasterScanner) Scan(
 	}
 
 	return providers, lastLT, nil
+}
+
+func IsUserFriendly(s string) bool {
+	return len(s) == 48 && userFriendlyAddrTemplate.MatchString(s)
 }

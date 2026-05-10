@@ -160,6 +160,16 @@ func (d *Discovery) CollectStorageContracts(ctx context.Context) error {
 			return ctx.Err()
 		}
 
+		if !IsUserFriendly(w.Address) {
+			log.Warn(
+				"provider with invalid wallet",
+				slog.String("pubkey", w.PublicKey),
+				slog.String("address", w.Address),
+			)
+
+			continue
+		}
+
 		contracts, lastLT, scanErr := d.walletScanner.Scan(ctx, w.Address, w.LT)
 		if scanErr != nil {
 			log.Error(
