@@ -9,6 +9,7 @@ import (
 
 	"github.com/rwrrioe/mytonprovider-agent/internal/app"
 	"github.com/rwrrioe/mytonprovider-agent/internal/config"
+	"github.com/rwrrioe/mytonprovider-agent/internal/lib/sl"
 )
 
 func main() {
@@ -26,7 +27,7 @@ func run() int {
 
 	app, err := app.New(ctx, cfg, logger)
 	if err != nil {
-		logger.Error("init failed")
+		logger.Error("failed to start", sl.Err(err))
 		return 1
 	}
 	defer app.Close()
