@@ -16,5 +16,29 @@ services:
     volumes:
       - ./config:/app/config:ro
     restart: unless-stopped
+
+  otel-collector:
+      image: otel/opentelemtry-collector-contrib:latest
+      volumes:
+        - ./deploy/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+      ports:
+        - "4317:4317"
+      depends_on:
+        - jaeger
+
+  jaeger:
+      image: jaegertracing/all-in-one:2
+      ports:
+        - "16686:16686"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9091:9090"
+    depends_on:
+      - agent
+
     # Default bridge network — DNS names redis/db do NOT resolve here.
     # The agent connects to the backend's tailscale IP (set in .env).

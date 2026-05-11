@@ -47,3 +47,8 @@ workers:
 metrics:
   enabled: true
   port: "2112"
+
+telemetry:
+  enabled: true
+  endpoint: "otel-collector:4317"
+  service_name: "mtpa_telemetry"

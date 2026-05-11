@@ -74,13 +74,20 @@ type Metrics struct {
 	Port    string `yaml:"port"    env:"METRICS_PORT"    env-default:"2112"`
 }
 
+type Telemetry struct {
+	Enabled     bool   `yaml:"enabled"    env:"TELEMETRY_ENABLED"    env-default:"true"`
+	EndPoint    string `yaml:"endpoint"    env:"TELEMETRY_ENDPOINT"    env-default:"otel-collector:4317"`
+	ServiceName string `yaml:"service_name"    env:"TELEMETRY_SERVICE_NAME"    env-default:"mtpa_telemetry"`
+}
+
 type Config struct {
-	System   System   `yaml:"system"`
-	Postgres Postgres `yaml:"postgres"`
-	Redis    Redis    `yaml:"redis"`
-	TON      TON      `yaml:"ton"`
-	Workers  Workers  `yaml:"workers"`
-	Metrics  Metrics  `yaml:"metrics"`
+	System    System    `yaml:"system"`
+	Postgres  Postgres  `yaml:"postgres"`
+	Redis     Redis     `yaml:"redis"`
+	TON       TON       `yaml:"ton"`
+	Workers   Workers   `yaml:"workers"`
+	Metrics   Metrics   `yaml:"metrics"`
+	Telemetry Telemetry `yaml:"telemetry"`
 }
 
 func MustLoad() *Config {

@@ -28,6 +28,25 @@ services:
       - agent
     networks:
       - bridge_net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./deploy/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"
+    depends_on:
+      - jaeger
+    networks:
+      - bridge_net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+    networks:
+      - bridge_net
+
 networks:
   bridge_net:
     external: true
