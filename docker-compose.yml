@@ -41,7 +41,11 @@ services:
       - bridge_net
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/jaeger:latest
+    volumes:
+    - ./deploy/jaeger.yaml:/etc/jaeger/jaeger.yaml:ro
+    - ./deploy/jaeger-ui.json:/etc/jaeger/jaeger-ui.json:ro
+    command: ["--config=/etc/jaeger/jaeger.yaml"]
     ports:
       - "16686:16686"
     networks:

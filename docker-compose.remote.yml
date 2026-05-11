@@ -26,10 +26,15 @@ services:
       depends_on:
         - jaeger
 
+  
   jaeger:
-      image: jaegertracing/all-in-one:2
-      ports:
-        - "16686:16686"
+    image: jaegertracing/jaeger:latest
+    volumes:
+      - ./deploy/jaeger.yaml:/etc/jaeger/jaeger.yaml:ro
+      - ./deploy/jaeger-ui.json:/etc/jaeger/jaeger-ui.json:ro
+    command: ["--config=/etc/jaeger/jaeger.yaml"]
+    ports:
+      - "16686:16686"
 
   prometheus:
     image: prom/prometheus:latest
