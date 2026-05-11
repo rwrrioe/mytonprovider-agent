@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/rwrrioe/mytonprovider-agent/internal/domain"
 	"github.com/rwrrioe/mytonprovider-agent/internal/jobs"
 	"github.com/rwrrioe/mytonprovider-agent/internal/lib/sl"
@@ -34,6 +36,8 @@ type Proof struct {
 	contractRepo ContractRepo
 	endpointRepo EndpointRepo
 	publisher    Publisher
+
+	tracer trace.Tracer
 }
 
 func New(
@@ -45,6 +49,7 @@ func New(
 	contractRepo ContractRepo,
 	endpointRepo EndpointRepo,
 	publisher Publisher,
+	tracer trace.Tracer,
 ) *Proof {
 	if cfg.EndpointMaxAge <= 0 {
 		cfg.EndpointMaxAge = 1 * time.Hour
@@ -64,11 +69,15 @@ func New(
 		contractRepo: contractRepo,
 		endpointRepo: endpointRepo,
 		publisher:    publisher,
+		tracer:       tracer,
 	}
 }
 
 func (p *Proof) CheckStorageProofs(ctx context.Context) error {
 	const op = "usecase.proof.CheckStorageProofs"
+
+	ctx, span := p.tracer.Start(ctx, "checkStorageProofs")
+	defer span.End()
 
 	log := p.logger.With(slog.String("op", op))
 	log.Debug("checking storage proofs")

@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/rwrrioe/mytonprovider-agent/internal/jobs"
 	"github.com/rwrrioe/mytonprovider-agent/internal/lib/sl"
 )
@@ -25,6 +27,8 @@ type Update struct {
 
 	ipinfoRepo IPInfoRepo
 	publisher  Publisher
+
+	tracer trace.Tracer
 }
 
 func New(
@@ -33,6 +37,7 @@ func New(
 	ipinfo IPInfoClient,
 	ipinfoRepo IPInfoRepo,
 	publisher Publisher,
+	tracer trace.Tracer,
 ) *Update {
 	if cfg.IPInfoTimeout <= 0 {
 		cfg.IPInfoTimeout = 10 * time.Second
@@ -46,11 +51,15 @@ func New(
 		ipinfo:     ipinfo,
 		ipinfoRepo: ipinfoRepo,
 		publisher:  publisher,
+		tracer:     tracer,
 	}
 }
 
 func (u *Update) UpdateIPInfo(ctx context.Context) error {
 	const op = "usecase.update.UpdateIPInfo"
+
+	ctx, span := u.tracer.Start(ctx, "updateIPInfo")
+	defer span.End()
 
 	log := u.logger.With(slog.String("op", op))
 	log.Debug("updating ip info")

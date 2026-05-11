@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/xssnick/tonutils-go/tlb"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/rwrrioe/mytonprovider-agent/internal/domain"
 	"github.com/rwrrioe/mytonprovider-agent/internal/jobs"
@@ -39,6 +40,8 @@ type Poll struct {
 	providerRepo ProviderRepo
 	contractRepo ContractRepo
 	publisher    Publisher
+
+	tracer trace.Tracer
 }
 
 func New(
@@ -49,6 +52,7 @@ func New(
 	providerRepo ProviderRepo,
 	contractRepo ContractRepo,
 	publisher Publisher,
+	tracer trace.Tracer,
 ) *Poll {
 	if cfg.ProbeTimeout <= 0 {
 		cfg.ProbeTimeout = 14 * time.Second
@@ -64,11 +68,15 @@ func New(
 		providerRepo: providerRepo,
 		contractRepo: contractRepo,
 		publisher:    publisher,
+		tracer:       tracer,
 	}
 }
 
 func (p *Poll) UpdateProviderRates(ctx context.Context) error {
 	const op = "usecase.poll.UpdateProviderRates"
+
+	ctx, span := p.tracer.Start(ctx, "updateProviderRates")
+	defer span.End()
 
 	log := p.logger.With(slog.String("op", op))
 	log.Debug("updating provider rates")
@@ -162,6 +170,9 @@ func (p *Poll) UpdateProviderRates(ctx context.Context) error {
 
 func (p *Poll) UpdateRejectedContracts(ctx context.Context) error {
 	const op = "usecase.poll.UpdateRejectedContracts"
+
+	ctx, span := p.tracer.Start(ctx, "updateRejectedContracts")
+	defer span.End()
 
 	log := p.logger.With(slog.String("op", op))
 	log.Debug("updating rejected contracts")

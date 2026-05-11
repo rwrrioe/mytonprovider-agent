@@ -10,6 +10,7 @@ import (
 	"github.com/rwrrioe/mytonprovider-agent/internal/domain"
 	"github.com/rwrrioe/mytonprovider-agent/internal/jobs"
 	"github.com/rwrrioe/mytonprovider-agent/internal/lib/sl"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Config struct {
@@ -34,6 +35,8 @@ type Discovery struct {
 	endpointRepo EndpointRepo
 	systemRepo   SystemRepo
 	publisher    Publisher
+
+	tracer trace.Tracer
 }
 
 func New(
@@ -47,6 +50,7 @@ func New(
 	endpointRepo EndpointRepo,
 	systemRepo SystemRepo,
 	publisher Publisher,
+	tracer trace.Tracer,
 ) *Discovery {
 	return &Discovery{
 		logger:        logger,
@@ -59,11 +63,15 @@ func New(
 		endpointRepo:  endpointRepo,
 		systemRepo:    systemRepo,
 		publisher:     publisher,
+		tracer:        tracer,
 	}
 }
 
 func (d *Discovery) CollectNewProviders(ctx context.Context) error {
 	const op = "usecase.discovery.CollectNewProviders"
+
+	ctx, span := d.tracer.Start(ctx, "collectNewProviders")
+	defer span.End()
 
 	log := d.logger.With(slog.String("op", op))
 	log.Debug("collecting new providers")
@@ -128,6 +136,9 @@ func (d *Discovery) CollectNewProviders(ctx context.Context) error {
 
 func (d *Discovery) CollectStorageContracts(ctx context.Context) error {
 	const op = "usecase.discovery.CollectStorageContracts"
+
+	ctx, span := d.tracer.Start(ctx, "collectStorageContracts")
+	defer span.End()
 
 	log := d.logger.With(slog.String("op", op))
 	log.Debug("collecting storage contracts")
@@ -251,6 +262,9 @@ func (d *Discovery) CollectStorageContracts(ctx context.Context) error {
 
 func (d *Discovery) ResolveEndpoints(ctx context.Context) error {
 	const op = "usecase.discovery.ResolveEndpoints"
+
+	ctx, span := d.tracer.Start(ctx, "resolveEndpoints")
+	defer span.End()
 
 	log := d.logger.With(slog.String("op", op))
 	log.Debug("resolving provider endpoints")
