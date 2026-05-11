@@ -11,10 +11,14 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rwrrioe/mytonprovider-agent/internal/config"
 	"github.com/rwrrioe/mytonprovider-agent/internal/lib/sl"
+	"github.com/rwrrioe/mytonprovider-agent/pkg/telemetry"
 	"github.com/xssnick/tonutils-go/adnl"
 	"github.com/xssnick/tonutils-go/adnl/dht"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-storage-provider/pkg/transport"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	dhtAdapter "github.com/rwrrioe/mytonprovider-agent/internal/adapters/outbound/dht"
 	"github.com/rwrrioe/mytonprovider-agent/internal/adapters/outbound/directprovider"
@@ -68,6 +72,8 @@ type App struct {
 
 	pool         *pgxpool.Pool
 	gateProvider *adnl.Gateway
+
+	tracer *sdktrace.TracerProvider
 }
 
 func New(
@@ -76,6 +82,25 @@ func New(
 	logger *slog.Logger,
 ) (*App, error) {
 	const op = "app.New"
+
+	var tp *sdktrace.TracerProvider
+	if cfg.Telemetry.Enabled {
+		var traceErr error
+		tp, traceErr = telemetry.New(ctx, telemetry.Config{
+			ServiceName: cfg.Telemetry.ServiceName,
+			EndPoint:    cfg.Telemetry.EndPoint,
+		})
+		if traceErr != nil {
+			return nil, fmt.Errorf("%s:%w", op, traceErr)
+		}
+	}
+
+	newTracer := func(name string) trace.Tracer {
+		if tp != nil {
+			return tp.Tracer(name)
+		}
+		return noop.NewTracerProvider().Tracer(name)
+	}
 
 	streamKey := func(kind, cycleType string) string {
 		return fmt.Sprintf("%s:%s:%s", cfg.Redis.StreamPrefix, kind, cycleType)
@@ -129,6 +154,7 @@ func New(
 		masterScanner, walletScanner, dhtResolver,
 		providerRepo, contractRepo, endpointRepo, systemRepo,
 		publisher,
+		newTracer("discovery"),
 	)
 
 	pollUC := poll.New(
@@ -139,6 +165,7 @@ func New(
 			InspectContractsStream: streamKey("result", jobs.CycleInspectContracts),
 		},
 		direct, inspector, providerRepo, contractRepo, publisher,
+		newTracer("poll"),
 	)
 
 	proofUC := proof.New(
@@ -150,6 +177,7 @@ func New(
 		},
 		inspector, dhtResolver, direct,
 		contractRepo, endpointRepo, publisher,
+		newTracer("proof"),
 	)
 
 	updateUC := update.New(
@@ -158,6 +186,7 @@ func New(
 			LookupIPInfoStream: streamKey("result", jobs.CycleLookupIPInfo),
 		},
 		ipinfoCli, ipinfoRepo, publisher,
+		newTracer("update"),
 	)
 
 	m := metrics.New("ton_storage", "mtpa")
@@ -190,6 +219,7 @@ func New(
 		Prometheus:    m,
 		Logger:        logger,
 		bindings:      bindings,
+		tracer:        tp,
 		Config:        cfg,
 	}, nil
 }
@@ -304,8 +334,16 @@ func initADNL(
 	return dhtCli, transportCli, gateProvider, nil
 }
 
-func (a *App) Close() {
+func (a *App) Close(ctx context.Context) {
 	a.pool.Close()
 	a.RDB.Close()
 	a.gateProvider.Close()
+
+	if a.tracer != nil {
+		if err := a.tracer.Shutdown(context.Background()); err != nil {
+			a.Logger.Error("failed to shutdown tracer: %w", err)
+		}
+	} else {
+		a.Logger.Info("telemetry skipped, not shutting down")
+	}
 }

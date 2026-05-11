@@ -30,7 +30,7 @@ func run() int {
 		logger.Error("failed to start", sl.Err(err))
 		return 1
 	}
-	defer app.Close()
+	defer app.Close(ctx)
 
 	app.MustRun(ctx)
 	return 0
