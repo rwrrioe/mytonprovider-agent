@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/rwrrioe/mytonprovider-agent/internal/jobs"
 	"github.com/rwrrioe/mytonprovider-agent/internal/lib/sl"
@@ -169,6 +171,16 @@ func (c *Consumer) process(
 	start := time.Now()
 	err := c.runHandler(handlerCtx, log)
 	dur := time.Since(start)
+
+	tracer := otel.Tracer("consumer")
+	handlerCtx, span := tracer.Start(handlerCtx, "consumer.process")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("consumer_id", c.consumerID),
+		attribute.String("cycle_type", c.cycleType),
+		attribute.String("job_id", jobID),
+	)
 
 	status := jobs.StatusOK
 	if err != nil {
